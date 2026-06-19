@@ -2,24 +2,48 @@ import React, { useEffect, useState } from "react";
 import api, { getErrorMessage } from "../api.js";
 import Message from "./Message.jsx";
 import Pagination from "./Pagination.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
-const empty = { full_name: "", email: "", phone: "", address: "" };
+const empty = {
+  full_name: "",
+  email: "",
+  phone: "",
+  address: "",
+};
 
 export default function CustomerManager({ onChange }) {
-  const [data, setData] = useState({ items: [], total: 0, page: 1, limit: 20, pages: 1 });
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [data, setData] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 1,
+  });
+
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState(null);
+
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
 
   async function load(p = page) {
     try {
       setLoading(true);
+
       const res = await api.get("/customers", {
-        params: { ...(search ? { q: search } : {}), page: p, limit: 20 },
+        params: {
+          ...(search ? { q: search } : {}),
+          page: p,
+          limit: 20,
+        },
       });
+
       setData(res.data);
     } catch (err) {
       setMsg({ type: "error", text: getErrorMessage(err) });
@@ -29,26 +53,53 @@ export default function CustomerManager({ onChange }) {
   }
 
   useEffect(() => {
-    const t = setTimeout(() => { setPage(1); load(1); }, 280);
+    const t = setTimeout(() => {
+      setPage(1);
+      load(1);
+    }, 280);
+
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => { load(page); }, [page]);
+  useEffect(() => {
+    load(page);
+  }, [page]);
 
   function change(e) {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+
+    setForm((f) => ({
+      ...f,
+      [name]: value,
+    }));
   }
 
   function validate() {
-    if (!form.full_name.trim()) return "Full name is required.";
-    if (!form.email.includes("@")) return "Valid email is required.";
-    if (form.phone.trim().length < 7) return "Phone must be at least 7 characters.";
+    if (!form.full_name.trim()) {
+      return "Full name is required.";
+    }
+
+    if (!form.email.includes("@")) {
+      return "Valid email is required.";
+    }
+
+    if (form.phone.trim().length < 7) {
+      return "Phone must be at least 7 characters.";
+    }
+
     return "";
   }
 
   async function submit(e) {
     e.preventDefault();
+
+    if (!isAdmin) {
+      return setMsg({
+        type: "error",
+        text: "Viewer users cannot create or update customers.",
+      });
+    }
+
     const err = validate();
     if (err) return setMsg({ type: "error", text: err });
 
@@ -67,27 +118,56 @@ export default function CustomerManager({ onChange }) {
         await api.post("/customers", payload);
         setMsg({ type: "success", text: "Customer added." });
       }
-      setForm(empty); setEditId(null);
-      load(page); onChange?.();
+
+      setForm(empty);
+      setEditId(null);
+
+      load(page);
+      onChange?.();
     } catch (err) {
       setMsg({ type: "error", text: getErrorMessage(err) });
     }
   }
 
   function startEdit(c) {
+    if (!isAdmin) return;
+
     setEditId(c.id);
-    setForm({ full_name: c.full_name, email: c.email, phone: c.phone, address: c.address || "" });
+
+    setForm({
+      full_name: c.full_name,
+      email: c.email,
+      phone: c.phone,
+      address: c.address || "",
+    });
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function cancelEdit() { setEditId(null); setForm(empty); }
+  function cancelEdit() {
+    setEditId(null);
+    setForm(empty);
+  }
 
   async function del(id) {
-    if (!confirm("Delete this customer? Customers with orders cannot be deleted.")) return;
+    if (!isAdmin) {
+      return setMsg({
+        type: "error",
+        text: "Viewer users cannot delete customers.",
+      });
+    }
+
+    if (!confirm("Delete this customer? Customers with orders cannot be deleted.")) {
+      return;
+    }
+
     try {
       await api.delete(`/customers/${id}`);
+
       setMsg({ type: "success", text: "Customer deleted." });
-      load(page); onChange?.();
+
+      load(page);
+      onChange?.();
     } catch (err) {
       setMsg({ type: "error", text: getErrorMessage(err) });
     }
@@ -95,47 +175,109 @@ export default function CustomerManager({ onChange }) {
 
   return (
     <div>
-      <Message type={msg.type} text={msg.text} onClose={() => setMsg({ type: "", text: "" })} />
-      <div className="manager-layout">
+      <Message
+        type={msg.type}
+        text={msg.text}
+        onClose={() => setMsg({ type: "", text: "" })}
+      />
 
-        {/* Form */}
-        <form className="card card-pad" onSubmit={submit} style={{ display: "grid", gap: "1rem" }}>
-          <div className="card-header">
-            <div>
-              <h3>{editId ? "✏️ Edit Customer" : "➕ Add Customer"}</h3>
-              <p>Email must be unique across all customers.</p>
+      {!isAdmin && (
+        <div className="msg msg-info" style={{ marginBottom: "1rem" }}>
+          <span>ℹ</span>
+          <span>
+            You are logged in as <strong>viewer</strong>. You can view
+            customers, but create, update, and delete actions are disabled.
+          </span>
+        </div>
+      )}
+
+      <div className={isAdmin ? "manager-layout" : ""}>
+        {isAdmin && (
+          <form
+            className="card card-pad"
+            onSubmit={submit}
+            style={{ display: "grid", gap: "1rem" }}
+          >
+            <div className="card-header">
+              <div>
+                <h3>{editId ? "✏️ Edit Customer" : "➕ Add Customer"}</h3>
+                <p>Email must be unique across all customers.</p>
+              </div>
             </div>
-          </div>
 
-          <label>Full Name
-            <input name="full_name" value={form.full_name} onChange={change} placeholder="e.g. Priya Sharma" required />
-          </label>
+            <label>
+              Full Name
+              <input
+                name="full_name"
+                value={form.full_name}
+                onChange={change}
+                placeholder="e.g. Priya Sharma"
+                required
+              />
+            </label>
 
-          <label>Email Address
-            <input name="email" type="email" value={form.email} onChange={change} placeholder="priya@example.com" required />
-          </label>
+            <label>
+              Email Address
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={change}
+                placeholder="priya@example.com"
+                required
+              />
+            </label>
 
-          <label>Phone Number
-            <input name="phone" value={form.phone} onChange={change} placeholder="9876543210" required />
-          </label>
+            <label>
+              Phone Number
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={change}
+                placeholder="9876543210"
+                required
+              />
+            </label>
 
-          <label>Address (optional)
-            <textarea name="address" value={form.address} onChange={change} placeholder="Street, City, State…" style={{ minHeight: 60 }} />
-          </label>
+            <label>
+              Address (optional)
+              <textarea
+                name="address"
+                value={form.address}
+                onChange={change}
+                placeholder="Street, City, State…"
+                style={{ minHeight: 60 }}
+              />
+            </label>
 
-          <div className="btn-group">
-            <button className="btn btn-primary" type="submit">{editId ? "Update Customer" : "Add Customer"}</button>
-            {editId && <button className="btn btn-secondary" type="button" onClick={cancelEdit}>Cancel</button>}
-          </div>
-        </form>
+            <div className="btn-group">
+              <button className="btn btn-primary" type="submit">
+                {editId ? "Update Customer" : "Add Customer"}
+              </button>
 
-        {/* Table */}
+              {editId && (
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={cancelEdit}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+
         <div className="card card-pad">
           <div className="toolbar">
             <div>
               <h3 style={{ fontWeight: 800, marginBottom: 2 }}>Customers</h3>
-              <p style={{ fontSize: "0.8rem", color: "var(--ink3)" }}>{data.total} registered customers</p>
+
+              <p style={{ fontSize: "0.8rem", color: "var(--ink3)" }}>
+                {data.total} registered customers
+              </p>
             </div>
+
             <input
               style={{ maxWidth: 260 }}
               value={search}
@@ -156,35 +298,91 @@ export default function CustomerManager({ onChange }) {
                   <th>Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {data.items.map((c) => (
                   <tr key={c.id}>
-                    <td><strong>{c.full_name}</strong></td>
+                    <td>
+                      <strong>{c.full_name}</strong>
+                    </td>
+
                     <td>{c.email}</td>
                     <td>{c.phone}</td>
-                    <td style={{ color: "var(--ink3)", fontSize: "0.8rem" }}>{c.address || "—"}</td>
-                    <td style={{ color: "var(--ink3)", fontSize: "0.78rem", whiteSpace: "nowrap" }}>
+
+                    <td
+                      style={{
+                        color: "var(--ink3)",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      {c.address || "—"}
+                    </td>
+
+                    <td
+                      style={{
+                        color: "var(--ink3)",
+                        fontSize: "0.78rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {new Date(c.created_at).toLocaleDateString("en-IN")}
                     </td>
+
                     <td>
-                      <div className="btn-group">
-                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => startEdit(c)}>✏️</button>
-                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => del(c.id)}>🗑</button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="btn-group">
+                          <button
+                            className="btn btn-secondary btn-sm btn-icon"
+                            type="button"
+                            onClick={() => startEdit(c)}
+                          >
+                            ✏️
+                          </button>
+
+                          <button
+                            className="btn btn-danger btn-sm btn-icon"
+                            type="button"
+                            onClick={() => del(c.id)}
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="badge badge-gray">View only</span>
+                      )}
                     </td>
                   </tr>
                 ))}
+
                 {!data.items.length && !loading && (
-                  <tr><td colSpan={6}>
-                    <div className="empty-state"><div className="empty-icon">👥</div><p>No customers found.</p></div>
-                  </td></tr>
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="empty-state">
+                        <div className="empty-icon">👥</div>
+                        <p>No customers found.</p>
+                      </div>
+                    </td>
+                  </tr>
                 )}
+
                 {loading && (
-                  <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink3)", padding: "2rem" }}>Loading…</td></tr>
+                  <tr>
+                    <td
+                      colSpan={6}
+                      style={{
+                        textAlign: "center",
+                        color: "var(--ink3)",
+                        padding: "2rem",
+                      }}
+                    >
+                      Loading…
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
+
           <Pagination {...data} onPageChange={(p) => setPage(p)} />
         </div>
       </div>

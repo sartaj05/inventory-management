@@ -2,15 +2,18 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app import crud, schemas
-from app.auth import require_active_user
+from app.auth import require_active_user, require_admin_user
 from app.database import get_db
 from app.models import User
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
-
 @router.post("", response_model=schemas.OrderRead, status_code=status.HTTP_201_CREATED)
-def create_order(payload: schemas.OrderCreate, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def create_order(
+    payload: schemas.OrderCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
     return crud.create_order(db, payload)
 
 
@@ -26,16 +29,29 @@ def list_orders(
 
 
 @router.get("/{order_id}", response_model=schemas.OrderRead)
-def get_order(order_id: int, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def get_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_active_user),
+):
     return crud.get_order(db, order_id)
 
 
 @router.patch("/{order_id}/status", response_model=schemas.OrderRead)
-def update_order_status(order_id: int, payload: schemas.OrderStatusUpdate, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def update_order_status(
+    order_id: int,
+    payload: schemas.OrderStatusUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
     return crud.update_order_status(db, order_id, payload)
 
 
 @router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_order(order_id: int, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
     crud.delete_order(db, order_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

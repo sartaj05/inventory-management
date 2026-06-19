@@ -2,15 +2,18 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app import crud, schemas
-from app.auth import require_active_user
+from app.auth import require_active_user, require_admin_user
 from app.database import get_db
 from app.models import User
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
-
 @router.post("", response_model=schemas.CustomerRead, status_code=status.HTTP_201_CREATED)
-def create_customer(payload: schemas.CustomerCreate, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def create_customer(
+    payload: schemas.CustomerCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
     return crud.create_customer(db, payload)
 
 
@@ -26,16 +29,29 @@ def list_customers(
 
 
 @router.get("/{customer_id}", response_model=schemas.CustomerRead)
-def get_customer(customer_id: int, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def get_customer(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_active_user),
+):
     return crud.get_customer(db, customer_id)
 
 
 @router.put("/{customer_id}", response_model=schemas.CustomerRead)
-def update_customer(customer_id: int, payload: schemas.CustomerUpdate, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def update_customer(
+    customer_id: int,
+    payload: schemas.CustomerUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
     return crud.update_customer(db, customer_id, payload)
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_customer(customer_id: int, db: Session = Depends(get_db), _: User = Depends(require_active_user)):
+def delete_customer(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_user),
+):
     crud.delete_customer(db, customer_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

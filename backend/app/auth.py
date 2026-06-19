@@ -74,9 +74,7 @@ def get_current_user(
     return user
 
 
-def require_active_user(
-    current_user: models.User = Depends(get_current_user),
-) -> models.User:
+def require_active_user(current_user: models.User = Depends(get_current_user)) -> models.User:
     return current_user
 
 

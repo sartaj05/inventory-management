@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api, { getErrorMessage } from "../api.js";
 import Message from "./Message.jsx";
 import Pagination from "./Pagination.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -17,6 +18,9 @@ const STATUS_COLORS = {
 };
 
 export default function OrderManager({ onChange }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [data, setData] = useState({
     items: [],
     total: 0,
@@ -86,6 +90,7 @@ export default function OrderManager({ onChange }) {
   const estimatedTotal = useMemo(() => {
     return items.reduce((sum, item) => {
       const p = products.find((x) => String(x.id) === String(item.product_id));
+
       return p ? sum + Number(p.price) * Number(item.quantity || 0) : sum;
     }, 0);
   }, [items, products]);
@@ -116,6 +121,13 @@ export default function OrderManager({ onChange }) {
   async function createOrder(e) {
     e.preventDefault();
 
+    if (!isAdmin) {
+      return setMsg({
+        type: "error",
+        text: "Viewer users cannot create orders.",
+      });
+    }
+
     const err = validate();
     if (err) return setMsg({ type: "error", text: err });
 
@@ -144,6 +156,13 @@ export default function OrderManager({ onChange }) {
   }
 
   async function updateStatus(orderId, newStatus) {
+    if (!isAdmin) {
+      return setMsg({
+        type: "error",
+        text: "Viewer users cannot update order status.",
+      });
+    }
+
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
 
@@ -166,7 +185,16 @@ export default function OrderManager({ onChange }) {
   }
 
   async function deleteOrder(id) {
-    if (!confirm("Delete this order? Stock will be restored if not already cancelled.")) return;
+    if (!isAdmin) {
+      return setMsg({
+        type: "error",
+        text: "Viewer users cannot delete orders.",
+      });
+    }
+
+    if (!confirm("Delete this order? Stock will be restored if not already cancelled.")) {
+      return;
+    }
 
     try {
       await api.delete(`/orders/${id}`);
@@ -207,160 +235,176 @@ export default function OrderManager({ onChange }) {
         onClose={() => setMsg({ type: "", text: "" })}
       />
 
-      <div className="manager-layout">
-        {/* Create Form */}
-        <form
-          className="card card-pad"
-          onSubmit={createOrder}
-          style={{ display: "grid", gap: "1rem" }}
-        >
-          <div className="card-header">
-            <div>
-              <h3>➕ Create Order</h3>
-              <p>Stock is reduced automatically on submit.</p>
+      {!isAdmin && (
+        <div className="msg msg-info" style={{ marginBottom: "1rem" }}>
+          <span>ℹ</span>
+          <span>
+            You are logged in as <strong>viewer</strong>. You can view orders,
+            but create, update, cancel, and delete actions are disabled.
+          </span>
+        </div>
+      )}
+
+      <div className={isAdmin ? "manager-layout" : ""}>
+        {isAdmin && (
+          <form
+            className="card card-pad"
+            onSubmit={createOrder}
+            style={{ display: "grid", gap: "1rem" }}
+          >
+            <div className="card-header">
+              <div>
+                <h3>➕ Create Order</h3>
+                <p>Stock is reduced automatically on submit.</p>
+              </div>
             </div>
-          </div>
 
-          <label>
-            Customer
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-            >
-              <option value="">Select customer…</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.full_name} — {c.email}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "0.6rem",
-              }}
-            >
-              <strong style={{ fontSize: "0.85rem" }}>Order Items</strong>
-
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setItems((i) => [...i, emptyItem])}
+            <label>
+              Customer
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                required
               >
-                + Add Row
-              </button>
-            </div>
+                <option value="">Select customer…</option>
 
-            <div style={{ display: "grid", gap: "0.5rem" }}>
-              {items.map((item, idx) => {
-                const prod = products.find(
-                  (x) => String(x.id) === String(item.product_id)
-                );
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.full_name} — {c.email}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-                return (
-                  <div className="order-item-builder" key={idx}>
-                    <label style={{ gap: "0.25rem" }}>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          color: "var(--ink3)",
-                        }}
-                      >
-                        Product
-                      </span>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "0.6rem",
+                }}
+              >
+                <strong style={{ fontSize: "0.85rem" }}>Order Items</strong>
 
-                      <select
-                        value={item.product_id}
-                        onChange={(e) =>
-                          updateItem(idx, "product_id", e.target.value)
-                        }
-                      >
-                        <option value="">Select…</option>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setItems((i) => [...i, emptyItem])}
+                >
+                  + Add Row
+                </button>
+              </div>
 
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id} disabled={p.quantity === 0}>
-                            {p.name} ({p.sku}) — Qty: {p.quantity}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+              <div style={{ display: "grid", gap: "0.5rem" }}>
+                {items.map((item, idx) => {
+                  const prod = products.find(
+                    (x) => String(x.id) === String(item.product_id)
+                  );
 
-                    <label style={{ gap: "0.25rem" }}>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          color: "var(--ink3)",
-                        }}
-                      >
-                        Qty
-                      </span>
+                  return (
+                    <div className="order-item-builder" key={idx}>
+                      <label style={{ gap: "0.25rem" }}>
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            color: "var(--ink3)",
+                          }}
+                        >
+                          Product
+                        </span>
 
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(idx, "quantity", e.target.value)
-                        }
-                      />
-                    </label>
+                        <select
+                          value={item.product_id}
+                          onChange={(e) =>
+                            updateItem(idx, "product_id", e.target.value)
+                          }
+                        >
+                          <option value="">Select…</option>
 
-                    <div className="item-line-total">
-                      {prod
-                        ? currency.format(
-                            Number(prod.price) * Number(item.quantity || 0)
-                          )
-                        : "—"}
+                          {products.map((p) => (
+                            <option
+                              key={p.id}
+                              value={p.id}
+                              disabled={p.quantity === 0}
+                            >
+                              {p.name} ({p.sku}) — Qty: {p.quantity}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label style={{ gap: "0.25rem" }}>
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            color: "var(--ink3)",
+                          }}
+                        >
+                          Qty
+                        </span>
+
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateItem(idx, "quantity", e.target.value)
+                          }
+                        />
+                      </label>
+
+                      <div className="item-line-total">
+                        {prod
+                          ? currency.format(
+                              Number(prod.price) * Number(item.quantity || 0)
+                            )
+                          : "—"}
+                      </div>
+
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-icon"
+                          onClick={() =>
+                            setItems((i) => i.filter((_, j) => j !== idx))
+                          }
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
-
-                    {items.length > 1 && (
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-icon"
-                        onClick={() =>
-                          setItems((i) => i.filter((_, j) => j !== idx))
-                        }
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="total-box">
-            <span>Estimated Total</span>
-            <strong>{currency.format(estimatedTotal)}</strong>
-          </div>
+            <div className="total-box">
+              <span>Estimated Total</span>
+              <strong>{currency.format(estimatedTotal)}</strong>
+            </div>
 
-          <label>
-            Notes (optional)
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any order notes…"
-              style={{ minHeight: 55 }}
-            />
-          </label>
+            <label>
+              Notes (optional)
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any order notes…"
+                style={{ minHeight: 55 }}
+              />
+            </label>
 
-          <button className="btn btn-primary" type="submit">
-            Create Order
-          </button>
-        </form>
+            <button className="btn btn-primary" type="submit">
+              Create Order
+            </button>
+          </form>
+        )}
 
-        {/* Orders List */}
         <div className="card card-pad">
           <div className="toolbar" style={{ flexWrap: "wrap" }}>
             <div>
               <h3 style={{ fontWeight: 800, marginBottom: 2 }}>Orders</h3>
+
               <p style={{ fontSize: "0.8rem", color: "var(--ink3)" }}>
                 {data.total} total orders
               </p>
@@ -393,9 +437,11 @@ export default function OrderManager({ onChange }) {
                 <div className="order-head">
                   <div className="order-head-left">
                     <h4>Order #{order.id}</h4>
+
                     <p>
                       {order.customer.full_name} · {order.customer.email}
                     </p>
+
                     <p>{new Date(order.created_at).toLocaleString("en-IN")}</p>
 
                     {order.notes && (
@@ -453,7 +499,7 @@ export default function OrderManager({ onChange }) {
                       👁 View Details
                     </button>
 
-                    {order.status === "pending" && (
+                    {isAdmin && order.status === "pending" && (
                       <button
                         type="button"
                         className="btn btn-success btn-sm"
@@ -463,7 +509,7 @@ export default function OrderManager({ onChange }) {
                       </button>
                     )}
 
-                    {order.status !== "cancelled" && (
+                    {isAdmin && order.status !== "cancelled" && (
                       <button
                         type="button"
                         className="btn btn-danger btn-sm"
@@ -473,7 +519,7 @@ export default function OrderManager({ onChange }) {
                       </button>
                     )}
 
-                    {order.status === "cancelled" && (
+                    {isAdmin && order.status === "cancelled" && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -484,13 +530,17 @@ export default function OrderManager({ onChange }) {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => deleteOrder(order.id)}
-                  >
-                    🗑 Delete
-                  </button>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => deleteOrder(order.id)}
+                    >
+                      🗑 Delete
+                    </button>
+                  ) : (
+                    <span className="badge badge-gray">View only</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -507,7 +557,6 @@ export default function OrderManager({ onChange }) {
         </div>
       </div>
 
-      {/* Loading Modal */}
       {detailLoading && !selectedOrder && (
         <div className="modal-backdrop">
           <div className="modal-card">
@@ -521,13 +570,13 @@ export default function OrderManager({ onChange }) {
         </div>
       )}
 
-      {/* Order Details Modal */}
       {selectedOrder && (
         <div className="modal-backdrop" onClick={() => setSelectedOrder(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h3>Order #{selectedOrder.id}</h3>
+
                 <p>
                   {selectedOrder.customer?.full_name} ·{" "}
                   {selectedOrder.customer?.email}
@@ -546,6 +595,7 @@ export default function OrderManager({ onChange }) {
             <div className="order-detail-grid">
               <div className="detail-box">
                 <span>Status</span>
+
                 <strong
                   className={STATUS_COLORS[selectedOrder.status] || "badge badge-gray"}
                 >
@@ -598,13 +648,17 @@ export default function OrderManager({ onChange }) {
                       <td>
                         <strong>{item.product?.name}</strong>
                       </td>
+
                       <td>
                         <span className="badge badge-gray">
                           {item.product?.sku}
                         </span>
                       </td>
+
                       <td>{item.quantity}</td>
+
                       <td>{currency.format(Number(item.unit_price))}</td>
+
                       <td>
                         <strong>
                           {currency.format(Number(item.line_total))}
@@ -617,7 +671,7 @@ export default function OrderManager({ onChange }) {
             </div>
 
             <div className="modal-footer">
-              {selectedOrder.status === "pending" && (
+              {isAdmin && selectedOrder.status === "pending" && (
                 <button
                   type="button"
                   className="btn btn-success"
@@ -627,7 +681,7 @@ export default function OrderManager({ onChange }) {
                 </button>
               )}
 
-              {selectedOrder.status !== "cancelled" && (
+              {isAdmin && selectedOrder.status !== "cancelled" && (
                 <button
                   type="button"
                   className="btn btn-danger"

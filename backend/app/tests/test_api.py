@@ -15,11 +15,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.main import app
 from app.database import Base, get_db
-from app.auth import require_active_user
+from app.auth import get_current_user
 from app.models import User
 
 
-# ── Use SQLite file DB for tests ────────────────────────────────
 TEST_DB_URL = "sqlite:///./test.db"
 
 engine = create_engine(
@@ -34,18 +33,29 @@ TestingSession = sessionmaker(
 )
 
 
-def override_require_active_user():
+def override_admin_user():
     return User(
         id=1,
         full_name="Test Admin",
-        email="test@example.com",
+        email="admin@example.com",
         role="admin",
+        is_active=True,
+    )
+
+
+def override_viewer_user():
+    return User(
+        id=2,
+        full_name="Test Viewer",
+        email="viewer@example.com",
+        role="viewer",
         is_active=True,
     )
 
 
 def override_get_db():
     db = TestingSession()
+
     try:
         yield db
     finally:
@@ -55,19 +65,18 @@ def override_get_db():
 @pytest.fixture(autouse=True)
 def setup_db():
     Base.metadata.create_all(bind=engine)
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_admin_user
+
     yield
+
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.clear()
 
-
-app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[require_active_user] = override_require_active_user
 
 client = TestClient(app)
 
-
-# ════════════════════════════════════════════════════════════════
-#  Helpers
-# ════════════════════════════════════════════════════════════════
 
 def create_product(
     name="Test Product",
@@ -100,10 +109,6 @@ def create_customer(
         },
     )
 
-
-# ════════════════════════════════════════════════════════════════
-#  Product Tests
-# ════════════════════════════════════════════════════════════════
 
 class TestProducts:
 
@@ -228,10 +233,6 @@ class TestProducts:
         assert any("Laptop" in p["name"] for p in items)
 
 
-# ════════════════════════════════════════════════════════════════
-#  Customer Tests
-# ════════════════════════════════════════════════════════════════
-
 class TestCustomers:
 
     def test_create_customer_success(self):
@@ -306,10 +307,6 @@ class TestCustomers:
 
         assert res.status_code == 204
 
-
-# ════════════════════════════════════════════════════════════════
-#  Order Tests
-# ════════════════════════════════════════════════════════════════
 
 class TestOrders:
 
@@ -537,10 +534,6 @@ class TestOrders:
         assert all(o["status"] == "fulfilled" for o in res.json()["items"])
 
 
-# ════════════════════════════════════════════════════════════════
-#  Dashboard Tests
-# ════════════════════════════════════════════════════════════════
-
 class TestDashboard:
 
     def test_dashboard_summary_structure(self):
@@ -577,3 +570,70 @@ class TestDashboard:
         res = client.get("/dashboard/summary")
 
         assert res.json()["low_stock_count"] >= 1
+
+
+class TestRoleBasedAccess:
+
+    def test_viewer_can_list_products(self):
+        app.dependency_overrides[get_current_user] = override_viewer_user
+
+        res = client.get("/products")
+
+        assert res.status_code == 200
+
+    def test_viewer_can_view_dashboard(self):
+        app.dependency_overrides[get_current_user] = override_viewer_user
+
+        res = client.get("/dashboard/summary")
+
+        assert res.status_code == 200
+
+    def test_viewer_cannot_create_product(self):
+        app.dependency_overrides[get_current_user] = override_viewer_user
+
+        res = client.post(
+            "/products",
+            json={
+                "name": "Viewer Product",
+                "sku": "VIEW-001",
+                "price": 100,
+                "quantity": 10,
+            },
+        )
+
+        assert res.status_code == 403
+        assert res.json()["detail"] == "Admin access required."
+
+    def test_viewer_cannot_create_customer(self):
+        app.dependency_overrides[get_current_user] = override_viewer_user
+
+        res = client.post(
+            "/customers",
+            json={
+                "full_name": "Viewer Customer",
+                "email": "viewer.customer@test.com",
+                "phone": "9999999",
+            },
+        )
+
+        assert res.status_code == 403
+        assert res.json()["detail"] == "Admin access required."
+
+    def test_viewer_cannot_create_order(self):
+        app.dependency_overrides[get_current_user] = override_viewer_user
+
+        res = client.post(
+            "/orders",
+            json={
+                "customer_id": 1,
+                "items": [
+                    {
+                        "product_id": 1,
+                        "quantity": 1,
+                    }
+                ],
+            },
+        )
+
+        assert res.status_code == 403
+        assert res.json()["detail"] == "Admin access required."

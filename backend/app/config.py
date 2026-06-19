@@ -1,5 +1,3 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,7 +10,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:3000,http://localhost"
     low_stock_threshold: int = 5
 
-    secret_key: str = ""
+    # JWT/Auth settings
+    # In production, set SECRET_KEY in Render/Docker environment. Do not commit real secrets.
+    secret_key: str = "dev-only-change-this-secret-key-minimum-32-characters"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440
 
@@ -20,8 +20,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secret(self):
-        if self.environment == "production" and len(self.secret_key) < 32:
-            raise ValueError("SECRET_KEY must be set in production and must be at least 32 characters.")
+        if self.environment.lower() == "production":
+            if not self.secret_key or self.secret_key.startswith("dev-only") or len(self.secret_key) < 32:
+                raise ValueError("SECRET_KEY must be set in production and must be at least 32 characters.")
         return self
 
     @property

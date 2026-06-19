@@ -116,33 +116,24 @@ docker push yourdockerhub/inventory-backend
 
 ## 📋 API Reference
 
-> All business APIs are protected with JWT authentication.  
-> First login/register, then send token as:
-> `Authorization: Bearer <access_token>`
-
-| Method | Endpoint                      | Description                       |
-|--------|-------------------------------|-----------------------------------|
-| POST   | /auth/register                | Register a new user               |
-| POST   | /auth/login                   | Login and receive JWT token       |
-| GET    | /auth/me                      | Get logged-in user profile        |
-| GET    | /products                     | List products (paginated)         |
-| POST   | /products                     | Create product                    |
-| GET    | /products/{id}                | Get product details               |
-| PUT    | /products/{id}                | Update product                    |
-| DELETE | /products/{id}                | Delete product                    |
-| GET    | /customers                    | List customers (paginated)        |
-| POST   | /customers                    | Create customer                   |
-| GET    | /customers/{id}               | Get customer details              |
-| PUT    | /customers/{id}               | Update customer                   |
-| DELETE | /customers/{id}               | Delete customer                   |
-| GET    | /orders                       | List orders (paginated)           |
-| POST   | /orders                       | Create order                      |
-| GET    | /orders/{id}                  | Get order details                 |
-| PATCH  | /orders/{id}/status           | Update order status               |
-| DELETE | /orders/{id}                  | Delete order and restore stock    |
-| GET    | /dashboard/summary            | Dashboard summary stats           |
-| GET    | /docs                         | Swagger API documentation         |
-| GET    | /health                       | Health check                      |
+| Method | Endpoint                      | Description                  |
+|--------|-------------------------------|------------------------------|
+| GET    | /products                     | List products (paginated)    |
+| POST   | /products                     | Create product               |
+| GET    | /products/{id}                | Get product                  |
+| PUT    | /products/{id}                | Update product               |
+| DELETE | /products/{id}                | Delete product               |
+| GET    | /customers                    | List customers (paginated)   |
+| POST   | /customers                    | Create customer              |
+| PUT    | /customers/{id}               | Update customer              |
+| DELETE | /customers/{id}               | Delete customer              |
+| GET    | /orders                       | List orders (paginated)      |
+| POST   | /orders                       | Create order                 |
+| PATCH  | /orders/{id}/status           | Update order status          |
+| DELETE | /orders/{id}                  | Delete order (restores stock)|
+| GET    | /dashboard/summary            | Dashboard summary stats      |
+| GET    | /docs                         | Swagger UI                   |
+| GET    | /health                       | Health check                 |
 
 ---
 

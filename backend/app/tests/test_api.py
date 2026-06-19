@@ -10,12 +10,24 @@ from sqlalchemy.orm import sessionmaker
 
 from app.main import app
 from app.database import Base, get_db
+from app.auth import require_active_user
+from app.models import User
 
 # ── Use SQLite in-memory for tests ──
 TEST_DB_URL = "sqlite:///./test.db"
 
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
 TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def override_require_active_user():
+    return User(
+        id=1,
+        full_name="Test Admin",
+        email="test@example.com",
+        role="admin",
+        is_active=True,
+    )
 
 
 def override_get_db():
@@ -34,6 +46,7 @@ def setup_db():
 
 
 app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[require_active_user] = override_require_active_user
 client = TestClient(app)
 
 
@@ -276,16 +289,3 @@ class TestDashboard:
         client.post("/products", json={"name": "Low Item", "sku": "LOW-001", "price": 10, "quantity": 2})
         res = client.get("/dashboard/summary")
         assert res.json()["low_stock_count"] >= 1
-from app.auth import require_active_user
-from app.models import User
-
-def override_require_active_user():
-    return User(
-        id=1,
-        full_name="Test Admin",
-        email="test@example.com",
-        role="admin",
-        is_active=True,
-    )
-
-app.dependency_overrides[require_active_user] = override_require_active_user

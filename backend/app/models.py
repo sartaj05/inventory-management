@@ -1,7 +1,26 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import relationship
+import enum
 
 from app.database import Base
+
+
+class OrderStatus(str, enum.Enum):
+    pending = "pending"
+    fulfilled = "fulfilled"
+    cancelled = "cancelled"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String(150), nullable=False)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    role = Column(String(20), nullable=False, default="admin")  # admin | viewer
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class Product(Base):
@@ -10,8 +29,10 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False)
     sku = Column(String(80), nullable=False, unique=True, index=True)
+    description = Column(String(500), nullable=True)
     price = Column(Numeric(10, 2), nullable=False)
     quantity = Column(Integer, nullable=False, default=0)
+    category = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -30,6 +51,7 @@ class Customer(Base):
     full_name = Column(String(150), nullable=False)
     email = Column(String(255), nullable=False, unique=True, index=True)
     phone = Column(String(30), nullable=False)
+    address = Column(String(300), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     orders = relationship("Order", back_populates="customer")
@@ -41,7 +63,10 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="RESTRICT"), nullable=False)
     total_amount = Column(Numeric(10, 2), nullable=False)
+    status = Column(Enum(OrderStatus), nullable=False, default=OrderStatus.pending)
+    notes = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     customer = relationship("Customer", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

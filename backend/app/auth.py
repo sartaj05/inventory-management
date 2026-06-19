@@ -18,10 +18,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def hash_password(plain: str) -> str:
+    if len(plain.encode("utf-8")) > 72:
+        raise ValueError("Password must be 72 bytes or fewer.")
     return pwd_context.hash(plain)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    if len(plain.encode("utf-8")) > 72:
+        return False
     return pwd_context.verify(plain, hashed)
 
 

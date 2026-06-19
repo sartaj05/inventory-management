@@ -276,3 +276,16 @@ class TestDashboard:
         client.post("/products", json={"name": "Low Item", "sku": "LOW-001", "price": 10, "quantity": 2})
         res = client.get("/dashboard/summary")
         assert res.json()["low_stock_count"] >= 1
+from app.auth import require_active_user
+from app.models import User
+
+def override_require_active_user():
+    return User(
+        id=1,
+        full_name="Test Admin",
+        email="test@example.com",
+        role="admin",
+        is_active=True,
+    )
+
+app.dependency_overrides[require_active_user] = override_require_active_user

@@ -16,6 +16,10 @@ services:
         value: 5
       - key: ENVIRONMENT
         value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 1
 
 databases:
   - name: inventory-db

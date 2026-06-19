@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getErrorMessage } from "../api.js";
+import { useNavigate } from "react-router-dom";
 
 const MAX_PASSWORD_LENGTH = 72;
 
 export default function AuthPage() {
   const { login, register } = useAuth();
+  const navigate = useNavigate();
 
-  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -21,7 +23,10 @@ export default function AuthPage() {
   function change(e) {
     const { name, value } = e.target;
 
-    if ((name === "password" || name === "confirm") && value.length > MAX_PASSWORD_LENGTH) {
+    if (
+      (name === "password" || name === "confirm") &&
+      value.length > MAX_PASSWORD_LENGTH
+    ) {
       setError(`Password must be ${MAX_PASSWORD_LENGTH} characters or fewer.`);
       return;
     }
@@ -41,32 +46,23 @@ export default function AuthPage() {
     const email = form.email.trim().toLowerCase();
     const password = form.password;
 
-    if (!email) {
-      return setError("Email address is required.");
-    }
-
-    if (!password) {
-      return setError("Password is required.");
-    }
+    if (!email) return setError("Email address is required.");
+    if (!password) return setError("Password is required.");
 
     if (password.length > MAX_PASSWORD_LENGTH) {
-      return setError(`Password must be ${MAX_PASSWORD_LENGTH} characters or fewer.`);
+      return setError(
+        `Password must be ${MAX_PASSWORD_LENGTH} characters or fewer.`
+      );
     }
 
     if (mode === "register") {
       const fullName = form.full_name.trim();
 
-      if (!fullName) {
-        return setError("Full name is required.");
-      }
-
-      if (password.length < 6) {
+      if (!fullName) return setError("Full name is required.");
+      if (password.length < 6)
         return setError("Password must be at least 6 characters.");
-      }
-
-      if (password !== form.confirm) {
+      if (password !== form.confirm)
         return setError("Passwords do not match.");
-      }
     }
 
     setLoading(true);
@@ -77,6 +73,9 @@ export default function AuthPage() {
       } else {
         await register(form.full_name.trim(), email, password);
       }
+
+      // ✅ REDIRECT AFTER SUCCESS
+      navigate("/app");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -97,38 +96,28 @@ export default function AuthPage() {
 
   return (
     <div className="auth-shell">
-      {/* Left panel — branding */}
+      {/* LEFT SIDE */}
       <div className="auth-left">
         <div className="auth-brand">
           <div className="auth-logo">IMS</div>
           <h1>Inventory System</h1>
-          <p>Production-ready inventory & order management</p>
+          <p>Modern inventory & order management platform</p>
         </div>
 
         <ul className="auth-features">
-          <li>
-            <span className="feat-icon">📦</span> Product & stock management
-          </li>
-          <li>
-            <span className="feat-icon">👥</span> Customer records
-          </li>
-          <li>
-            <span className="feat-icon">🧾</span> Order tracking & fulfilment
-          </li>
-          <li>
-            <span className="feat-icon">📊</span> Real-time dashboard analytics
-          </li>
-          <li>
-            <span className="feat-icon">🔒</span> JWT-secured API
-          </li>
+          <li>📦 Smart product tracking</li>
+          <li>👥 Customer management</li>
+          <li>🧾 Order lifecycle control</li>
+          <li>📊 Real-time analytics</li>
+          <li>🔒 Secure authentication</li>
         </ul>
 
         <div className="auth-footer-note">
-          Built with FastAPI · React · PostgreSQL · Docker
+          FastAPI · React · PostgreSQL · Docker
         </div>
       </div>
 
-      {/* Right panel — form */}
+      {/* RIGHT SIDE */}
       <div className="auth-right">
         <div className="auth-card">
           <div className="auth-tabs">
@@ -150,19 +139,19 @@ export default function AuthPage() {
           </div>
 
           <div className="auth-card-body">
-            <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
+            <h2>
+              {mode === "login"
+                ? "Welcome back 👋"
+                : "Create your account 🚀"}
+            </h2>
 
             <p className="auth-subtitle">
               {mode === "login"
-                ? "Sign in to access your inventory dashboard."
-                : "Set up your IMS account in seconds."}
+                ? "Login to continue to your dashboard"
+                : "Start managing your inventory in seconds"}
             </p>
 
-            {error && (
-              <div className="auth-error">
-                <span>⚠</span> {error}
-              </div>
-            )}
+            {error && <div className="auth-error">⚠ {error}</div>}
 
             <form onSubmit={submit} className="auth-form">
               {mode === "register" && (
@@ -175,15 +164,13 @@ export default function AuthPage() {
                     placeholder="Rahul Sharma"
                     className="auth-input"
                     required
-                    autoFocus
-                    maxLength={150}
                     disabled={loading}
                   />
                 </label>
               )}
 
               <label className="auth-label">
-                Email Address
+                Email
                 <input
                   name="email"
                   type="email"
@@ -192,8 +179,6 @@ export default function AuthPage() {
                   placeholder="you@example.com"
                   className="auth-input"
                   required
-                  autoFocus={mode === "login"}
-                  maxLength={255}
                   disabled={loading}
                 />
               </label>
@@ -205,15 +190,9 @@ export default function AuthPage() {
                   type="password"
                   value={form.password}
                   onChange={change}
-                  placeholder={
-                    mode === "register"
-                      ? `Min 6 characters, max ${MAX_PASSWORD_LENGTH}`
-                      : "Enter your password"
-                  }
                   className="auth-input"
+                  placeholder="Enter password"
                   required
-                  minLength={mode === "register" ? 6 : undefined}
-                  maxLength={MAX_PASSWORD_LENGTH}
                   disabled={loading}
                 />
               </label>
@@ -226,36 +205,33 @@ export default function AuthPage() {
                     type="password"
                     value={form.confirm}
                     onChange={change}
-                    placeholder="Re-enter password"
                     className="auth-input"
+                    placeholder="Confirm password"
                     required
-                    minLength={6}
-                    maxLength={MAX_PASSWORD_LENGTH}
                     disabled={loading}
                   />
                 </label>
               )}
 
-              <button className="auth-submit" type="submit" disabled={loading}>
+              <button className="auth-submit" disabled={loading}>
                 {loading
-                  ? "Please wait…"
+                  ? "Processing..."
                   : mode === "login"
-                    ? "Sign In →"
-                    : "Create Account →"}
+                  ? "Sign In →"
+                  : "Create Account →"}
               </button>
             </form>
 
             <p className="auth-switch">
               {mode === "login" ? (
                 <>
-                  Don&apos;t have an account?{" "}
+                  Don’t have an account?{" "}
                   <button
                     type="button"
-                    className="auth-link"
                     onClick={() => switchMode("register")}
-                    disabled={loading}
+                    className="auth-link"
                   >
-                    Register here
+                    Register
                   </button>
                 </>
               ) : (
@@ -263,14 +239,24 @@ export default function AuthPage() {
                   Already have an account?{" "}
                   <button
                     type="button"
-                    className="auth-link"
                     onClick={() => switchMode("login")}
-                    disabled={loading}
+                    className="auth-link"
                   >
-                    Sign in
+                    Sign In
                   </button>
                 </>
               )}
+            </p>
+
+            {/* 👇 back to landing */}
+            <p style={{ marginTop: "10px" }}>
+              <button
+                onClick={() => navigate("/")}
+                className="auth-link"
+                type="button"
+              >
+                ← Back to Home
+              </button>
             </p>
           </div>
         </div>

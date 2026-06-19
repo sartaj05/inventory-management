@@ -7,26 +7,30 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from app import models
 from app.config import settings
 from app.database import get_db
-from app import models
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt_sha256 avoids bcrypt's 72-byte password limit.
+# bcrypt is kept second only to verify old hashes if already created.
+pwd_context = CryptContext(
+    schemes=["bcrypt_sha256", "bcrypt"],
+    deprecated="auto",
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def hash_password(plain: str) -> str:
-    if len(plain.encode("utf-8")) > 72:
-        raise ValueError("Password must be 72 bytes or fewer.")
     return pwd_context.hash(plain)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    if len(plain.encode("utf-8")) > 72:
+    try:
+        return pwd_context.verify(plain, hashed)
+    except ValueError:
         return False
-    return pwd_context.verify(plain, hashed)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -78,7 +82,9 @@ def get_current_user(
     return user
 
 
-def require_active_user(current_user: models.User = Depends(get_current_user)) -> models.User:
+def require_active_user(
+    current_user: models.User = Depends(get_current_user),
+) -> models.User:
     return current_user
 
 

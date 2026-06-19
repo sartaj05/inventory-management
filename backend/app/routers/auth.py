@@ -18,13 +18,10 @@ from app.database import get_db
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-
-# ── Schemas (kept local to avoid cluttering main schemas.py) ──
-
 class RegisterRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=150)
     email: EmailStr
-    password: str = Field(..., min_length=6, max_length=72)
+    password: str = Field(..., min_length=6, max_length=128)
 
     @field_validator("full_name")
     @classmethod
@@ -35,15 +32,6 @@ class RegisterRequest(BaseModel):
     @classmethod
     def normalize_email(cls, v: str) -> str:
         return v.strip().lower()
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if len(v.encode("utf-8")) > 72:
-            raise ValueError("Password must be 72 bytes or fewer.")
-        return v
-
-
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

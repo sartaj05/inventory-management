@@ -856,3 +856,105 @@ tbody tr:hover { background: #f8faff; }
   .auth-left { display: none; }
   .auth-right { padding: 1.5rem 1rem; min-height: 100vh; }
 }
+/* ── Modal / Order Details ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 28, 46, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(900px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  padding: 1.4rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.modal-header p {
+  font-size: 0.85rem;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.detail-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.detail-box span,
+.detail-notes span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.detail-box strong {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.detail-notes {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  padding: 0.9rem;
+}
+
+.detail-notes p {
+  margin-top: 0.35rem;
+  color: var(--ink2);
+  font-size: 0.9rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .order-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-card {
+    padding: 1rem;
+  }
+}

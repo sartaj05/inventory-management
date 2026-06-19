@@ -1,288 +1,178 @@
-# Inventory & Order Management System
+# 📦 Inventory & Order Management System
 
-Production-ready assessment project using:
+A full-stack, production-ready Inventory & Order Management System built with **FastAPI**, **React**, and **PostgreSQL** — fully containerized with Docker.
 
-- React frontend
-- FastAPI backend
-- PostgreSQL database
-- Docker + Docker Compose
-- Environment variable configuration
-- Public deployment ready
+---
 
-## Main Features
+## 🚀 Tech Stack
 
-### Products
-- Add product
-- View product list
-- Update product
-- Delete product
-- Unique SKU validation
-- Quantity cannot be negative
+| Layer       | Technology                          |
+|-------------|-------------------------------------|
+| Backend     | Python 3.12, FastAPI 0.115          |
+| Frontend    | React 18, Vite 5                    |
+| Database    | PostgreSQL 16                       |
+| Container   | Docker, Docker Compose              |
+| Deploy (BE) | Render.com                          |
+| Deploy (FE) | Vercel                              |
 
-### Customers
-- Add customer
-- View customer list
-- Delete customer
-- Unique email validation
+---
 
-### Orders
-- Create order with one or more products
-- Backend calculates total amount
-- Inventory is reduced automatically
-- Order is blocked if stock is insufficient
-- Delete/cancel order restores stock
+## ✨ Features
 
-### Dashboard
-- Total products
-- Total customers
-- Total orders
-- Low stock products
+### Backend
+- **Products** — CRUD with SKU uniqueness, category, description, pagination
+- **Customers** — CRUD with email uniqueness, address, pagination
+- **Orders** — Create/cancel with automatic stock management, status tracking (pending → fulfilled → cancelled)
+- **Dashboard** — Summary stats: inventory value, sales revenue, low stock alerts, order status breakdown
+- Pagination on all list endpoints (`?page=1&limit=20`)
+- Full input validation via Pydantic v2
+- Proper HTTP status codes and structured error messages
 
-## System Design Flow
+### Frontend
+- Responsive sidebar layout (desktop + mobile)
+- Live badge alerts for low stock & pending orders
+- Product search + category filter
+- Customer search
+- Order status filter (All / Pending / Fulfilled / Cancelled)
+- Inline order status updates (Fulfill / Cancel / Reactivate)
+- Estimated order total before submit
+- Pagination on all tables
 
-```text
-User Browser
-   |
-   v
-React Frontend
-   |
-   | REST API calls
-   v
-FastAPI Backend
-   |
-   | SQLAlchemy ORM
-   v
-PostgreSQL Database
-```
+---
 
-## Database Design
-
-```text
-products
-- id
-- name
-- sku unique
-- price
-- quantity
-- created_at
-- updated_at
-
-customers
-- id
-- full_name
-- email unique
-- phone
-- created_at
-
-orders
-- id
-- customer_id FK
-- total_amount
-- created_at
-
-order_items
-- id
-- order_id FK
-- product_id FK
-- quantity
-- unit_price
-- line_total
-```
-
-## Run Locally with Docker
+## 🏃 Quick Start (Docker Compose)
 
 ```bash
+# 1. Clone the repo
+git clone https://github.com/yourusername/inventory-management.git
+cd inventory-management
+
+# 2. Copy and configure environment
 cp .env.example .env
+# Edit .env with your preferred passwords
+
+# 3. Start all services
 docker compose up --build
+
+# Frontend → http://localhost
+# Backend API → http://localhost:8000
+# API Docs → http://localhost:8000/docs
 ```
 
-Open:
+---
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Swagger API Docs: http://localhost:8000/docs
+## 💻 Local Development
 
-## Run Backend Without Docker
-
+### Backend
 ```bash
 cd backend
-python -m venv .venv
-.venv\Scripts\activate
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+# Create a local .env with:
+# DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/inventory_db
+
+uvicorn app.main:app --reload --port 8000
 ```
 
-For Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-## Run Frontend Without Docker
-
+### Frontend
 ```bash
 cd frontend
 npm install
+
+# Create .env.local:
+# VITE_API_URL=http://localhost:8000
+
 npm run dev
+# → http://localhost:5173
 ```
 
-## API Endpoints
+---
 
-### Health
-```http
-GET /health
-```
+## 🌐 Deployment
 
-### Products
-```http
-POST /products
-GET /products
-GET /products/{id}
-PUT /products/{id}
-DELETE /products/{id}
-```
+### Backend → Render.com
+1. New Web Service → connect GitHub repo
+2. Root Directory: `backend`
+3. Build Command: `pip install -r requirements.txt`
+4. Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. Add environment variables from `.env.example`
+6. Create a free Render PostgreSQL database and copy the `DATABASE_URL`
 
-### Customers
-```http
-POST /customers
-GET /customers
-GET /customers/{id}
-DELETE /customers/{id}
-```
+### Frontend → Vercel
+1. New Project → connect GitHub repo
+2. Root Directory: `frontend`
+3. Set `VITE_API_URL=https://your-backend.onrender.com`
+4. Deploy
 
-### Orders
-```http
-POST /orders
-GET /orders
-GET /orders/{id}
-DELETE /orders/{id}
-```
-
-### Dashboard
-```http
-GET /dashboard/summary
-```
-
-## Example Order Payload
-
-```json
-{
-  "customer_id": 1,
-  "items": [
-    {
-      "product_id": 1,
-      "quantity": 2
-    },
-    {
-      "product_id": 2,
-      "quantity": 1
-    }
-  ]
-}
-```
-
-## Deployment Recommendation
-
-Recommended free-friendly deployment:
-
-- Backend: Render Web Service
-- Database: Render PostgreSQL
-- Frontend: Vercel
-
-### Backend Deployment on Render
-
-1. Push this project to GitHub.
-2. Create PostgreSQL database on Render.
-3. Create new Web Service from GitHub.
-4. Set root directory: `backend`
-5. Use Docker deployment or use:
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command:
-     ```bash
-     gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers 2
-     ```
-6. Add environment variables:
-   - `DATABASE_URL`
-   - `CORS_ORIGINS`
-   - `LOW_STOCK_THRESHOLD`
-
-Example `CORS_ORIGINS` after frontend deployment:
-
-```text
-https://your-frontend.vercel.app
-```
-
-### Frontend Deployment on Vercel
-
-1. Import GitHub repository in Vercel.
-2. Set root directory: `frontend`
-3. Build command:
-   ```bash
-   npm run build
-   ```
-4. Output directory:
-   ```text
-   dist
-   ```
-5. Add environment variable:
-   ```text
-   VITE_API_URL=https://your-backend.onrender.com
-   ```
-
-## Docker Hub Backend Image
-
-Build backend image:
-
+### Docker Hub (image submission)
 ```bash
-docker build -t your-dockerhub-username/inventory-backend:1.0 ./backend
+docker build -t yourdockerhub/inventory-backend ./backend
+docker push yourdockerhub/inventory-backend
 ```
 
-Login:
+---
 
-```bash
-docker login
+## 📋 API Reference
+
+| Method | Endpoint                      | Description                  |
+|--------|-------------------------------|------------------------------|
+| GET    | /products                     | List products (paginated)    |
+| POST   | /products                     | Create product               |
+| GET    | /products/{id}                | Get product                  |
+| PUT    | /products/{id}                | Update product               |
+| DELETE | /products/{id}                | Delete product               |
+| GET    | /customers                    | List customers (paginated)   |
+| POST   | /customers                    | Create customer              |
+| PUT    | /customers/{id}               | Update customer              |
+| DELETE | /customers/{id}               | Delete customer              |
+| GET    | /orders                       | List orders (paginated)      |
+| POST   | /orders                       | Create order                 |
+| PATCH  | /orders/{id}/status           | Update order status          |
+| DELETE | /orders/{id}                  | Delete order (restores stock)|
+| GET    | /dashboard/summary            | Dashboard summary stats      |
+| GET    | /docs                         | Swagger UI                   |
+| GET    | /health                       | Health check                 |
+
+---
+
+## 📁 Project Structure
+
+```
+inventory-management/
+├── backend/
+│   ├── app/
+│   │   ├── routers/         # products, customers, orders, dashboard
+│   │   ├── config.py
+│   │   ├── crud.py          # all DB operations
+│   │   ├── database.py
+│   │   ├── main.py
+│   │   ├── models.py        # SQLAlchemy ORM models
+│   │   └── schemas.py       # Pydantic v2 schemas
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # Dashboard, ProductManager, CustomerManager, OrderManager
+│   │   ├── App.jsx
+│   │   ├── api.js
+│   │   └── styles.css
+│   ├── Dockerfile
+│   └── nginx.conf
+├── docker-compose.yml
+├── .env.example
+└── .gitignore
 ```
 
-Push:
+---
 
-```bash
-docker push your-dockerhub-username/inventory-backend:1.0
-```
+## 🔧 Business Rules
 
-Submit this URL:
-
-```text
-https://hub.docker.com/r/your-dockerhub-username/inventory-backend
-```
-
-## GitHub Commit Plan
-
-Use small professional commits:
-
-```bash
-git init
-git add .
-git commit -m "chore: initialize inventory management project"
-
-git add backend
-git commit -m "feat: add FastAPI backend with product customer and order APIs"
-
-git add frontend
-git commit -m "feat: add React frontend for dashboard and management screens"
-
-git add Dockerfile docker-compose.yml .dockerignore .env.example README.md .gitignore
-git commit -m "chore: add Docker Compose and deployment configuration"
-
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/inventory-order-management.git
-git push -u origin main
-```
-
-## Assessment Submission Items
-
-Submit:
-
-1. GitHub repository link
-2. Docker Hub backend image link
-3. Frontend hosted URL
-4. Backend API hosted URL
+- Product SKU must be **unique** (auto-uppercased)
+- Customer email must be **unique**
+- Product quantity **cannot go negative**
+- Orders **cannot be placed** if stock is insufficient
+- Creating an order **automatically reduces** product stock
+- Cancelling an order **automatically restores** product stock
+- Total order amount is **calculated by the backend**

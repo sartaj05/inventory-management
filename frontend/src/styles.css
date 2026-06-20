@@ -386,6 +386,13 @@ a { text-decoration: none; }
 
 /* ═══════════════════════════════════════════
    BUTTONS
+   NOTE: .btn-primary and .btn-ghost were previously defined
+   TWICE (once here for the app shell, once again in the
+   landing-page section with different padding/sizing). Kept
+   ONE definition per class — using the more complete app-shell
+   version with hover/active states, and merged in the `.big`
+   modifier and any unique landing-page properties so nothing
+   visually breaks on the landing page.
 ═══════════════════════════════════════════ */
 
 button { cursor: pointer; border: none; border-radius: var(--radius-sm); transition: all 0.15s; }
@@ -404,11 +411,19 @@ button:active { transform: translateY(0); }
 }
 
 .btn-primary {
+  padding: 0.55rem 1.1rem;
   background: var(--blue);
   color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
   box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
 }
-.btn-primary:hover { background: var(--blue-dk); box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+.btn-primary:hover { background: var(--blue-dk); box-shadow: 0 4px 14px rgba(37,99,235,0.35); transform: translateY(-1px); }
+.btn-primary.big { padding: 0.85rem 2rem; font-size: 1rem; }
 
 .btn-secondary {
   background: var(--surface);
@@ -429,8 +444,14 @@ button:active { transform: translateY(0); }
   background: transparent;
   color: var(--ink3);
   padding: 0.4rem 0.7rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.btn-ghost:hover { background: var(--surface2); color: var(--ink2); }
+.btn-ghost:hover { background: var(--surface2); color: var(--ink2); transform: translateY(-1px); }
 
 .btn-sm { padding: 0.38rem 0.7rem; font-size: 0.78rem; }
 .btn-icon { padding: 0.38rem 0.5rem; min-width: 32px; justify-content: center; }
@@ -760,10 +781,16 @@ tbody td {
 .page-info { color: var(--ink3); font-weight: 500; }
 
 /* ═══════════════════════════════════════════
-   MODAL (Order Details)
+   MODAL (generic — order details, alerts, etc.)
+   .modal-overlay/.modal = original generic modal shell
+   .modal-backdrop/.modal-card = used by OrderManager,
+   ProductManager, CustomerManager (edit + confirm popups)
+   Both pairs kept since both class-name sets are referenced
+   directly in JSX across components.
 ═══════════════════════════════════════════ */
 
-.modal-overlay {
+.modal-overlay,
+.modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(10, 20, 40, 0.55);
@@ -782,7 +809,8 @@ tbody td {
   to { opacity: 1; }
 }
 
-.modal {
+.modal,
+.modal-card {
   background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
@@ -792,6 +820,8 @@ tbody td {
   overflow-y: auto;
   animation: slide-up 0.2s ease;
 }
+
+.modal-card { padding: 1.5rem 1.75rem; }
 
 @keyframes slide-up {
   from { transform: translateY(16px); opacity: 0; }
@@ -984,34 +1014,6 @@ tbody td {
   gap: 1rem;
   margin-bottom: 2rem;
 }
-
-.btn-primary {
-  padding: 0.65rem 1.5rem;
-  background: var(--blue, #2563eb);
-  color: white;
-  border-radius: var(--radius-sm, 8px);
-  font-weight: 700;
-  font-size: 0.875rem;
-  box-shadow: 0 4px 14px rgba(37,99,235,0.3);
-  cursor: pointer;
-  transition: all 0.15s;
-  border: none;
-}
-.btn-primary:hover { background: #1d4ed8; box-shadow: 0 6px 20px rgba(37,99,235,0.38); transform: translateY(-1px); }
-.btn-primary.big { padding: 0.85rem 2rem; font-size: 1rem; }
-
-.btn-ghost {
-  padding: 0.65rem 1.4rem;
-  background: rgba(255,255,255,0.85);
-  color: #475569;
-  border-radius: var(--radius-sm, 8px);
-  font-weight: 600;
-  font-size: 0.875rem;
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.btn-ghost:hover { background: white; color: #1e40af; transform: translateY(-1px); }
 
 .trust-badges {
   display: flex;
@@ -1556,114 +1558,6 @@ tbody td {
 .auth-link:hover { color: #1d4ed8; text-decoration: underline; transform: none; }
 
 /* ═══════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════ */
-
-@media (max-width: 1200px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .manager-layout { grid-template-columns: 320px 1fr; }
-}
-
-@media (max-width: 1024px) {
-  .landing-header { padding: 1rem 2.5rem; }
-  .hero { padding: 4rem 2.5rem; gap: 3rem; }
-  .features-section, .trust-logos, .final-cta { padding-left: 2.5rem; padding-right: 2.5rem; }
-  .auth-shell { grid-template-columns: 1fr; }
-  .auth-left { display: none; }
-  .app-shell { grid-template-columns: 230px 1fr; }
-}
-
-@media (max-width: 900px) {
-  .hero { grid-template-columns: 1fr; }
-  .hero-visual { display: none; }
-  .dash-grid { grid-template-columns: 1fr; }
-  .manager-layout { grid-template-columns: 1fr; }
-  .form-row { grid-template-columns: 1fr; }
-  .app-shell { grid-template-columns: 1fr; }
-  .sidebar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-    height: auto;
-    z-index: 100;
-    flex-direction: row;
-  }
-  .sidebar-inner {
-    flex-direction: row;
-    padding: 0.75rem 1rem;
-    gap: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    align-items: center;
-  }
-  .brand, .nav-section-label, .user-panel, .sidebar-footer, .brand-text { display: none; }
-  .nav-list {
-    display: flex;
-    flex-direction: row;
-    margin-bottom: 0;
-    gap: 4px;
-    flex: 1;
-    justify-content: space-around;
-  }
-  .nav-item { flex-direction: column; gap: 2px; padding: 0.5rem 0.75rem; font-size: 0.65rem; }
-  .nav-item.active::before { display: none; }
-  .nav-item:hover { transform: none; }
-  .content { padding-bottom: 70px; }
-  .topbar { padding: 0.85rem 1.25rem; }
-  .topbar-left h2 { font-size: 1.2rem; }
-  .page-body { padding: 1.25rem 1rem 2rem; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.85rem; }
-}
-
-@media (max-width: 600px) {
-  .landing-header { padding: 1rem 1.25rem; }
-  .landing-header nav, .landing-header .actions .btn-outline { display: none; }
-  .hero { padding: 3rem 1.25rem; }
-  .hero h1 { font-size: 2.4rem; }
-  .hero-stats { gap: 1.5rem; }
-  .features-section, .trust-logos, .final-cta { padding: 3rem 1.25rem; }
-  .features-section h2, .final-cta h2 { font-size: 1.85rem; }
-  .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-  .stat-value { font-size: 1.65rem; }
-  .table-wrap { margin: 0 -1rem; padding: 0 1rem; }
-}
-
-/* ═══════════════════════════════════════════
-   UTILITY
-═══════════════════════════════════════════ */
-
-.loading-spinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: var(--ink3);
-  font-size: 0.875rem;
-  gap: 0.5rem;
-}
-
-.divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 1.25rem 0;
-}
-
-/* Focus visible for keyboard nav */
-:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
-}
-
-/* Smooth scrolling */
-html { scroll-behavior: smooth; }
-
-/* Selection */
-::selection { background: var(--blue-lt); color: var(--blue-dk); }
-
-
-/* ═══════════════════════════════════════════
    ORDERS — Status Filter Group
 ═══════════════════════════════════════════ */
 
@@ -1864,53 +1758,6 @@ html { scroll-behavior: smooth; }
 .detail-notes p { font-size: 0.85rem; color: var(--ink2); }
 
 /* ═══════════════════════════════════════════
-   MODAL — aliases used by OrderManager.jsx
-   (maps modal-backdrop/modal-card -> existing
-    .modal-overlay/.modal styles)
-═══════════════════════════════════════════ */
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 20, 40, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  animation: fade-in 0.15s ease;
-}
-
-.modal-card {
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  max-width: 620px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 1.5rem 1.75rem;
-  animation: slide-up 0.2s ease;
-}
-
-/* ═══════════════════════════════════════════
-   ORDERS — Responsive
-═══════════════════════════════════════════ */
-
-@media (max-width: 640px) {
-  .order-item-builder {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "product product"
-      "qty total"
-      "remove remove";
-  }
-  .status-group { width: 100%; overflow-x: auto; }
-  .order-detail-grid { grid-template-columns: 1fr; }
-}
-/* ═══════════════════════════════════════════
    CONFIRM MODAL — used for delete confirmations
    (Products, Customers — replaces window.confirm)
 ═══════════════════════════════════════════ */
@@ -1991,6 +1838,125 @@ html { scroll-behavior: smooth; }
   transform: none;
 }
 
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .manager-layout { grid-template-columns: 320px 1fr; }
+}
+
+@media (max-width: 1024px) {
+  .landing-header { padding: 1rem 2.5rem; }
+  .hero { padding: 4rem 2.5rem; gap: 3rem; }
+  .features-section, .trust-logos, .final-cta { padding-left: 2.5rem; padding-right: 2.5rem; }
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-left { display: none; }
+  .app-shell { grid-template-columns: 230px 1fr; }
+}
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+  .dash-grid { grid-template-columns: 1fr; }
+  .manager-layout { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    height: auto;
+    z-index: 100;
+    flex-direction: row;
+  }
+  .sidebar-inner {
+    flex-direction: row;
+    padding: 0.75rem 1rem;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: center;
+  }
+  .brand, .nav-section-label, .user-panel, .sidebar-footer, .brand-text { display: none; }
+  .nav-list {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 0;
+    gap: 4px;
+    flex: 1;
+    justify-content: space-around;
+  }
+  .nav-item { flex-direction: column; gap: 2px; padding: 0.5rem 0.75rem; font-size: 0.65rem; }
+  .nav-item.active::before { display: none; }
+  .nav-item:hover { transform: none; }
+  .content { padding-bottom: 70px; }
+  .topbar { padding: 0.85rem 1.25rem; }
+  .topbar-left h2 { font-size: 1.2rem; }
+  .page-body { padding: 1.25rem 1rem 2rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.85rem; }
+}
+
+@media (max-width: 640px) {
+  .order-item-builder {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "product product"
+      "qty total"
+      "remove remove";
+  }
+  .status-group { width: 100%; overflow-x: auto; }
+  .order-detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .landing-header { padding: 1rem 1.25rem; }
+  .landing-header nav, .landing-header .actions .btn-outline { display: none; }
+  .hero { padding: 3rem 1.25rem; }
+  .hero h1 { font-size: 2.4rem; }
+  .hero-stats { gap: 1.5rem; }
+  .features-section, .trust-logos, .final-cta { padding: 3rem 1.25rem; }
+  .features-section h2, .final-cta h2 { font-size: 1.85rem; }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .stat-value { font-size: 1.65rem; }
+  .table-wrap { margin: 0 -1rem; padding: 0 1rem; }
+}
+
 @media (max-width: 480px) {
   .confirm-modal { max-width: 92vw; padding: 1.5rem; }
 }
+
+/* ═══════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════ */
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--ink3);
+  font-size: 0.875rem;
+  gap: 0.5rem;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.25rem 0;
+}
+
+/* Focus visible for keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Selection */
+::selection { background: var(--blue-lt); color: var(--blue-dk); }

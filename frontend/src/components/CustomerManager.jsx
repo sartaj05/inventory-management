@@ -24,7 +24,14 @@ export default function CustomerManager({ onChange }) {
   });
 
   const [form, setForm] = useState(empty);
-  const [editId, setEditId] = useState(null);
+
+  // editTarget holds the customer object currently open in the edit modal.
+  const [editTarget, setEditTarget] = useState(null);
+
+  // id of the customer pending delete confirmation
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -90,13 +97,14 @@ export default function CustomerManager({ onChange }) {
     return "";
   }
 
+  // Add-customer flow uses the inline left-side form (unchanged).
   async function submit(e) {
     e.preventDefault();
 
     if (!isAdmin) {
       return setMsg({
         type: "error",
-        text: "Viewer users cannot create or update customers.",
+        text: "Viewer users cannot create customers.",
       });
     }
 
@@ -111,16 +119,10 @@ export default function CustomerManager({ onChange }) {
     };
 
     try {
-      if (editId) {
-        await api.put(`/customers/${editId}`, payload);
-        setMsg({ type: "success", text: "Customer updated." });
-      } else {
-        await api.post("/customers", payload);
-        setMsg({ type: "success", text: "Customer added." });
-      }
+      await api.post("/customers", payload);
+      setMsg({ type: "success", text: "Customer added." });
 
       setForm(empty);
-      setEditId(null);
 
       load(page);
       onChange?.();
@@ -129,27 +131,73 @@ export default function CustomerManager({ onChange }) {
     }
   }
 
-  function startEdit(c) {
+  function openEdit(c) {
     if (!isAdmin) return;
 
-    setEditId(c.id);
-
-    setForm({
+    setEditTarget({
+      id: c.id,
       full_name: c.full_name,
       email: c.email,
       phone: c.phone,
       address: c.address || "",
     });
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function cancelEdit() {
-    setEditId(null);
-    setForm(empty);
+  function closeEdit() {
+    setEditTarget(null);
   }
 
-  async function del(id) {
+  function editChange(e) {
+    const { name, value } = e.target;
+    setEditTarget((t) => ({ ...t, [name]: value }));
+  }
+
+  function validateEdit(t) {
+    if (!t.full_name.trim()) {
+      return "Full name is required.";
+    }
+    if (!t.email.includes("@")) {
+      return "Valid email is required.";
+    }
+    if (t.phone.trim().length < 7) {
+      return "Phone must be at least 7 characters.";
+    }
+    return "";
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+
+    if (!isAdmin || !editTarget) return;
+
+    const err = validateEdit(editTarget);
+    if (err) return setMsg({ type: "error", text: err });
+
+    const payload = {
+      full_name: editTarget.full_name,
+      email: editTarget.email,
+      phone: editTarget.phone,
+      address: editTarget.address || null,
+    };
+
+    try {
+      setSaving(true);
+
+      await api.put(`/customers/${editTarget.id}`, payload);
+
+      setMsg({ type: "success", text: "Customer updated." });
+      setEditTarget(null);
+
+      load(page);
+      onChange?.();
+    } catch (err) {
+      setMsg({ type: "error", text: getErrorMessage(err) });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function askDelete(id) {
     if (!isAdmin) {
       return setMsg({
         type: "error",
@@ -157,21 +205,32 @@ export default function CustomerManager({ onChange }) {
       });
     }
 
-    if (!confirm("Delete this customer? Customers with orders cannot be deleted.")) {
-      return;
-    }
+    setConfirmDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    if (!confirmDeleteId) return;
 
     try {
-      await api.delete(`/customers/${id}`);
+      setDeleting(true);
+
+      await api.delete(`/customers/${confirmDeleteId}`);
 
       setMsg({ type: "success", text: "Customer deleted." });
+      setConfirmDeleteId(null);
 
       load(page);
       onChange?.();
     } catch (err) {
       setMsg({ type: "error", text: getErrorMessage(err) });
+    } finally {
+      setDeleting(false);
     }
   }
+
+  const deleteTargetCustomer = data.items.find(
+    (c) => c.id === confirmDeleteId
+  );
 
   return (
     <div>
@@ -200,7 +259,7 @@ export default function CustomerManager({ onChange }) {
           >
             <div className="card-header">
               <div>
-                <h3>{editId ? "✏️ Edit Customer" : "➕ Add Customer"}</h3>
+                <h3>➕ Add Customer</h3>
                 <p>Email must be unique across all customers.</p>
               </div>
             </div>
@@ -252,18 +311,8 @@ export default function CustomerManager({ onChange }) {
 
             <div className="btn-group">
               <button className="btn btn-primary" type="submit">
-                {editId ? "Update Customer" : "Add Customer"}
+                Add Customer
               </button>
-
-              {editId && (
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={cancelEdit}
-                >
-                  Cancel
-                </button>
-              )}
             </div>
           </form>
         )}
@@ -334,7 +383,7 @@ export default function CustomerManager({ onChange }) {
                           <button
                             className="btn btn-secondary btn-sm btn-icon"
                             type="button"
-                            onClick={() => startEdit(c)}
+                            onClick={() => openEdit(c)}
                           >
                             ✏️
                           </button>
@@ -342,7 +391,7 @@ export default function CustomerManager({ onChange }) {
                           <button
                             className="btn btn-danger btn-sm btn-icon"
                             type="button"
-                            onClick={() => del(c.id)}
+                            onClick={() => askDelete(c.id)}
                           >
                             🗑
                           </button>
@@ -386,6 +435,131 @@ export default function CustomerManager({ onChange }) {
           <Pagination {...data} onPageChange={(p) => setPage(p)} />
         </div>
       </div>
+
+      {/* ───────── Edit Customer Modal ───────── */}
+      {editTarget && (
+        <div className="modal-backdrop" onClick={closeEdit}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={saveEdit} style={{ display: "grid", gap: "1rem" }}>
+              <div className="modal-header" style={{ position: "static" }}>
+                <div>
+                  <h3>✏️ Edit Customer</h3>
+                  <p>Update details for "{editTarget.full_name}"</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-icon"
+                  onClick={closeEdit}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ padding: "0 1.75rem", display: "grid", gap: "1rem" }}>
+                <label>
+                  Full Name
+                  <input
+                    name="full_name"
+                    value={editTarget.full_name}
+                    onChange={editChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Email Address
+                  <input
+                    name="email"
+                    type="email"
+                    value={editTarget.email}
+                    onChange={editChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Phone Number
+                  <input
+                    name="phone"
+                    value={editTarget.phone}
+                    onChange={editChange}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Address (optional)
+                  <textarea
+                    name="address"
+                    value={editTarget.address}
+                    onChange={editChange}
+                    style={{ minHeight: 60 }}
+                  />
+                </label>
+              </div>
+
+              <div className="modal-footer" style={{ position: "static" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closeEdit}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button className="btn btn-primary" type="submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────── Delete Confirm Modal ───────── */}
+      {confirmDeleteId && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !deleting && setConfirmDeleteId(null)}
+        >
+          <div
+            className="confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="confirm-icon confirm-icon-danger">🗑</div>
+
+            <h3>Delete this customer?</h3>
+
+            <p>
+              {deleteTargetCustomer
+                ? `"${deleteTargetCustomer.full_name}" (${deleteTargetCustomer.email}) will be permanently removed. Customers with existing orders cannot be deleted.`
+                : "This customer will be permanently removed. Customers with existing orders cannot be deleted."}
+            </p>
+
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger-solid"
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

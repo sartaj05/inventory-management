@@ -31,7 +31,15 @@ export default function ProductManager({ onChange }) {
   });
 
   const [form, setForm] = useState(empty);
-  const [editId, setEditId] = useState(null);
+
+  // editTarget holds the product object currently open in the edit modal.
+  // null = modal closed. Replaces the old inline "editId driven form" flow.
+  const [editTarget, setEditTarget] = useState(null);
+
+  // id of the product pending delete confirmation (drives the confirm modal)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -106,13 +114,14 @@ export default function ProductManager({ onChange }) {
     return "";
   }
 
+  // Add-product flow uses the inline left-side form (unchanged).
   async function submit(e) {
     e.preventDefault();
 
     if (!isAdmin) {
       return setMsg({
         type: "error",
-        text: "Viewer users cannot create or update products.",
+        text: "Viewer users cannot create products.",
       });
     }
 
@@ -129,16 +138,10 @@ export default function ProductManager({ onChange }) {
     };
 
     try {
-      if (editId) {
-        await api.put(`/products/${editId}`, payload);
-        setMsg({ type: "success", text: "Product updated." });
-      } else {
-        await api.post("/products", payload);
-        setMsg({ type: "success", text: "Product added." });
-      }
+      await api.post("/products", payload);
+      setMsg({ type: "success", text: "Product added." });
 
       setForm(empty);
-      setEditId(null);
 
       load(page);
       onChange?.();
@@ -147,12 +150,11 @@ export default function ProductManager({ onChange }) {
     }
   }
 
-  function startEdit(p) {
+  function openEdit(p) {
     if (!isAdmin) return;
 
-    setEditId(p.id);
-
-    setForm({
+    setEditTarget({
+      id: p.id,
       name: p.name,
       sku: p.sku,
       description: p.description || "",
@@ -160,16 +162,65 @@ export default function ProductManager({ onChange }) {
       quantity: p.quantity,
       category: p.category || "",
     });
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function cancelEdit() {
-    setEditId(null);
-    setForm(empty);
+  function closeEdit() {
+    setEditTarget(null);
   }
 
-  async function del(id) {
+  function editChange(e) {
+    const { name, value } = e.target;
+    setEditTarget((t) => ({ ...t, [name]: value }));
+  }
+
+  function validateEdit(t) {
+    if (!t.name.trim() || !t.sku.trim()) {
+      return "Name and SKU are required.";
+    }
+    if (Number(t.price) <= 0) {
+      return "Price must be greater than 0.";
+    }
+    if (Number(t.quantity) < 0) {
+      return "Quantity cannot be negative.";
+    }
+    return "";
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+
+    if (!isAdmin || !editTarget) return;
+
+    const err = validateEdit(editTarget);
+    if (err) return setMsg({ type: "error", text: err });
+
+    const payload = {
+      name: editTarget.name,
+      sku: editTarget.sku,
+      description: editTarget.description || null,
+      price: Number(editTarget.price),
+      quantity: Number(editTarget.quantity),
+      category: editTarget.category || null,
+    };
+
+    try {
+      setSaving(true);
+
+      await api.put(`/products/${editTarget.id}`, payload);
+
+      setMsg({ type: "success", text: "Product updated." });
+      setEditTarget(null);
+
+      load(page);
+      onChange?.();
+    } catch (err) {
+      setMsg({ type: "error", text: getErrorMessage(err) });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function askDelete(id) {
     if (!isAdmin) {
       return setMsg({
         type: "error",
@@ -177,19 +228,32 @@ export default function ProductManager({ onChange }) {
       });
     }
 
-    if (!confirm("Delete this product? This cannot be undone.")) return;
+    setConfirmDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    if (!confirmDeleteId) return;
 
     try {
-      await api.delete(`/products/${id}`);
+      setDeleting(true);
+
+      await api.delete(`/products/${confirmDeleteId}`);
 
       setMsg({ type: "success", text: "Product deleted." });
+      setConfirmDeleteId(null);
 
       load(page);
       onChange?.();
     } catch (err) {
       setMsg({ type: "error", text: getErrorMessage(err) });
+    } finally {
+      setDeleting(false);
     }
   }
+
+  const deleteTargetProduct = data.items.find(
+    (p) => p.id === confirmDeleteId
+  );
 
   return (
     <div>
@@ -218,7 +282,7 @@ export default function ProductManager({ onChange }) {
           >
             <div className="card-header">
               <div>
-                <h3>{editId ? "✏️ Edit Product" : "➕ Add Product"}</h3>
+                <h3>➕ Add Product</h3>
                 <p>SKU is auto-uppercased and must be unique.</p>
               </div>
             </div>
@@ -296,18 +360,8 @@ export default function ProductManager({ onChange }) {
 
             <div className="btn-group">
               <button className="btn btn-primary" type="submit">
-                {editId ? "Update Product" : "Add Product"}
+                Add Product
               </button>
-
-              {editId && (
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={cancelEdit}
-                >
-                  Cancel
-                </button>
-              )}
             </div>
           </form>
         )}
@@ -411,7 +465,7 @@ export default function ProductManager({ onChange }) {
                           <button
                             className="btn btn-secondary btn-sm btn-icon"
                             type="button"
-                            onClick={() => startEdit(p)}
+                            onClick={() => openEdit(p)}
                           >
                             ✏️
                           </button>
@@ -419,7 +473,7 @@ export default function ProductManager({ onChange }) {
                           <button
                             className="btn btn-danger btn-sm btn-icon"
                             type="button"
-                            onClick={() => del(p.id)}
+                            onClick={() => askDelete(p.id)}
                           >
                             🗑
                           </button>
@@ -463,6 +517,157 @@ export default function ProductManager({ onChange }) {
           <Pagination {...data} onPageChange={(p) => setPage(p)} />
         </div>
       </div>
+
+      {/* ───────── Edit Product Modal ───────── */}
+      {editTarget && (
+        <div className="modal-backdrop" onClick={closeEdit}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={saveEdit} style={{ display: "grid", gap: "1rem" }}>
+              <div className="modal-header" style={{ position: "static" }}>
+                <div>
+                  <h3>✏️ Edit Product</h3>
+                  <p>Update details for "{editTarget.name}"</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-icon"
+                  onClick={closeEdit}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ padding: "0 1.75rem", display: "grid", gap: "1rem" }}>
+                <label>
+                  Product Name
+                  <input
+                    name="name"
+                    value={editTarget.name}
+                    onChange={editChange}
+                    required
+                  />
+                </label>
+
+                <div className="form-row">
+                  <label>
+                    SKU / Code
+                    <input
+                      name="sku"
+                      value={editTarget.sku}
+                      onChange={editChange}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Category
+                    <input
+                      name="category"
+                      value={editTarget.category}
+                      onChange={editChange}
+                    />
+                  </label>
+                </div>
+
+                <div className="form-row">
+                  <label>
+                    Price (₹)
+                    <input
+                      name="price"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={editTarget.price}
+                      onChange={editChange}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Quantity
+                    <input
+                      name="quantity"
+                      type="number"
+                      min="0"
+                      value={editTarget.quantity}
+                      onChange={editChange}
+                      required
+                    />
+                  </label>
+                </div>
+
+                <label>
+                  Description (optional)
+                  <textarea
+                    name="description"
+                    value={editTarget.description}
+                    onChange={editChange}
+                  />
+                </label>
+              </div>
+
+              <div className="modal-footer" style={{ position: "static" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closeEdit}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button className="btn btn-primary" type="submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────── Delete Confirm Modal ───────── */}
+      {confirmDeleteId && (
+        <div
+          className="modal-backdrop"
+          onClick={() => !deleting && setConfirmDeleteId(null)}
+        >
+          <div
+            className="confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="confirm-icon confirm-icon-danger">🗑</div>
+
+            <h3>Delete this product?</h3>
+
+            <p>
+              {deleteTargetProduct
+                ? `"${deleteTargetProduct.name}" (${deleteTargetProduct.sku}) will be permanently removed. This cannot be undone.`
+                : "This product will be permanently removed. This cannot be undone."}
+            </p>
+
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger-solid"
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

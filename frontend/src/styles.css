@@ -1661,3 +1661,336 @@ html { scroll-behavior: smooth; }
 
 /* Selection */
 ::selection { background: var(--blue-lt); color: var(--blue-dk); }
+
+
+/* ═══════════════════════════════════════════
+   ORDERS — Status Filter Group
+═══════════════════════════════════════════ */
+
+.status-group {
+  display: flex;
+  gap: 4px;
+  background: var(--surface2);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.status-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.status-btn:hover {
+  color: var(--ink);
+  background: rgba(15, 28, 46, 0.04);
+}
+
+.status-btn.active-all,
+.status-btn.active-pending,
+.status-btn.active-fulfilled,
+.status-btn.active-cancelled {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.status-btn.active-pending  { color: var(--amber); }
+.status-btn.active-fulfilled { color: var(--green); }
+.status-btn.active-cancelled { color: var(--red); }
+
+/* ═══════════════════════════════════════════
+   ORDERS — Order Card (list view)
+═══════════════════════════════════════════ */
+
+.order-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 0.9rem;
+}
+
+.order-card:last-child { margin-bottom: 0; }
+
+.order-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-head-left h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.order-head-left p {
+  font-size: 0.78rem;
+  color: var(--ink3);
+  line-height: 1.45;
+}
+
+.order-total {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ── Item list inside an order card ── */
+.order-items-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.order-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.83rem;
+  padding: 0.4rem 0;
+}
+
+.order-item-row span:first-child { color: var(--ink2); }
+
+.order-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════
+   ORDERS — Create-order item builder rows
+═══════════════════════════════════════════ */
+
+.order-item-builder {
+  display: grid;
+  grid-template-columns: 1fr 80px 90px auto;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.item-line-total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 0.6rem 0;
+  white-space: nowrap;
+}
+
+.total-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--blue-lt);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--blue-dk);
+}
+
+.total-box strong { font-size: 1.05rem; }
+
+/* ═══════════════════════════════════════════
+   ORDERS — Detail modal grid
+═══════════════════════════════════════════ */
+
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+
+.detail-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-box span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+}
+
+.detail-box strong { font-size: 0.95rem; color: var(--ink); }
+
+.detail-notes {
+  margin-top: 0.85rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+}
+
+.detail-notes span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.detail-notes p { font-size: 0.85rem; color: var(--ink2); }
+
+/* ═══════════════════════════════════════════
+   MODAL — aliases used by OrderManager.jsx
+   (maps modal-backdrop/modal-card -> existing
+    .modal-overlay/.modal styles)
+═══════════════════════════════════════════ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 40, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fade-in 0.15s ease;
+}
+
+.modal-card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem 1.75rem;
+  animation: slide-up 0.2s ease;
+}
+
+/* ═══════════════════════════════════════════
+   ORDERS — Responsive
+═══════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  .order-item-builder {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "product product"
+      "qty total"
+      "remove remove";
+  }
+  .status-group { width: 100%; overflow-x: auto; }
+  .order-detail-grid { grid-template-columns: 1fr; }
+}
+/* ═══════════════════════════════════════════
+   CONFIRM MODAL — used for delete confirmations
+   (Products, Customers — replaces window.confirm)
+═══════════════════════════════════════════ */
+
+.confirm-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 380px;
+  padding: 1.75rem;
+  text-align: center;
+  animation: slide-up 0.2s ease;
+}
+
+.confirm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  margin: 0 auto 1rem;
+}
+
+.confirm-icon-danger {
+  background: var(--red-lt);
+}
+
+.confirm-modal h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.01em;
+}
+
+.confirm-modal p {
+  font-size: 0.85rem;
+  color: var(--ink3);
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
+.confirm-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Solid red "destructive confirm" button — distinct from the
+   lighter .btn-danger used for row-level delete icons, so the
+   final confirm action reads as more committed/serious. */
+.btn-danger-solid {
+  padding: 0.55rem 1.1rem;
+  font-weight: 700;
+  font-size: 0.83rem;
+  border-radius: var(--radius-sm);
+  background: var(--red);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.btn-danger-solid:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+
+.btn-danger-solid:disabled,
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .confirm-modal { max-width: 92vw; padding: 1.5rem; }
+}

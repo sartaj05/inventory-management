@@ -11,7 +11,8 @@ node_modules/
 dist/
 .env.local
 .env.production
-
+backend/test.db
+*.db
 # Docker
 *.log
 

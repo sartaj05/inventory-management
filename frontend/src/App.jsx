@@ -20,7 +20,7 @@ const TABS = [
   { key: "orders", label: "Orders", icon: "🧾" },
 ];
 
-/* ================= APP SHELL (AFTER LOGIN) ================= */
+/* ================= MODERN APP SHELL ================= */
 
 function AppShell() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -46,7 +46,6 @@ function AppShell() {
       .catch(() => {});
   }, [refreshKey, isAuthenticated]);
 
-  // 🔐 Protect route
   if (!isAuthenticated) return <Navigate to="/auth" />;
 
   function badge(key) {
@@ -57,17 +56,19 @@ function AppShell() {
 
   return (
     <div className="app-shell">
+      {/* MODERN SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-inner">
+          {/* Brand */}
           <div className="brand">
             <div className="brand-logo">IMS</div>
             <div className="brand-text">
               <h1>Inventory System</h1>
-              <p>v2.0 · Proper App Now</p>
+              <p>Modern Operations</p>
             </div>
           </div>
 
-          <div className="nav-section-label">Navigation</div>
+          <div className="nav-section-label">CORE</div>
 
           <nav className="nav-list">
             {TABS.map((t) => (
@@ -77,7 +78,7 @@ function AppShell() {
                 onClick={() => setTab(t.key)}
               >
                 <span className="nav-icon">{t.icon}</span>
-                {t.label}
+                <span className="nav-label">{t.label}</span>
                 {badge(t.key) && (
                   <span className="nav-badge">{badge(t.key)}</span>
                 )}
@@ -85,7 +86,7 @@ function AppShell() {
             ))}
           </nav>
 
-          {/* USER */}
+          {/* USER INFO */}
           <div className="user-panel">
             <div className="user-avatar">
               {user?.full_name?.[0]?.toUpperCase() || "U"}
@@ -96,6 +97,7 @@ function AppShell() {
             </div>
           </div>
 
+          {/* FOOTER */}
           <div className="sidebar-footer">
             <button
               className="btn-logout"
@@ -104,13 +106,13 @@ function AppShell() {
                 navigate("/");
               }}
             >
-              ← Sign Out
+              Sign Out
             </button>
 
             <div className="api-pill">
               <span className="dot" />
               <div>
-                <strong>Backend API</strong>
+                <strong>Connected</strong>
                 <small>{API_BASE_URL}</small>
               </div>
             </div>
@@ -118,12 +120,11 @@ function AppShell() {
         </div>
       </aside>
 
+      {/* MAIN CONTENT */}
       <main className="content">
         <header className="topbar">
           <div className="topbar-left">
-            <div className="eyebrow">
-              Inventory & Order Management
-            </div>
+            <div className="eyebrow">Inventory & Order Management</div>
             <h2>{TABS.find((t) => t.key === tab)?.label}</h2>
           </div>
 
@@ -157,16 +158,12 @@ function AppRoutes() {
 
       <Route
         path="/auth"
-        element={
-          isAuthenticated ? <Navigate to="/app" /> : <AuthPage />
-        }
+        element={isAuthenticated ? <Navigate to="/app" /> : <AuthPage />}
       />
 
       <Route
         path="/app"
-        element={
-          isAuthenticated ? <AppShell /> : <Navigate to="/auth" />
-        }
+        element={isAuthenticated ? <AppShell /> : <Navigate to="/auth" />}
       />
     </Routes>
   );

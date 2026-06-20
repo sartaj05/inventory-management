@@ -86,16 +86,7 @@ function AppShell() {
             ))}
           </nav>
 
-          {/* USER INFO */}
-          <div className="user-panel">
-            <div className="user-avatar">
-              {user?.full_name?.[0]?.toUpperCase() || "U"}
-            </div>
-            <div className="user-info">
-              <strong>{user?.full_name}</strong>
-              <span>{user?.email}</span>
-            </div>
-          </div>
+
 
           {/* FOOTER */}
           <div className="sidebar-footer">
@@ -108,14 +99,6 @@ function AppShell() {
             >
               Sign Out
             </button>
-
-            <div className="api-pill">
-              <span className="dot" />
-              <div>
-                <strong>Connected</strong>
-                <small>{API_BASE_URL}</small>
-              </div>
-            </div>
           </div>
         </div>
       </aside>
